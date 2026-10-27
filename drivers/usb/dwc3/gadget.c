@@ -3739,6 +3739,12 @@ static void dwc3_gadget_hibernation_interrupt(struct dwc3 *dwc,
 static void dwc3_gadget_interrupt(struct dwc3 *dwc,
 		const struct dwc3_event_devt *event)
 {
+	if (event->type != DWC3_DEVICE_EVENT_SOF &&
+	    event->type != DWC3_DEVICE_EVENT_CMD_CMPL)
+		dev_info(dwc->dev, "usbdbg: devt %u info 0x%x dsts 0x%08x state %d\n",
+			 event->type, event->event_info,
+			 dwc3_readl(dwc->regs, DWC3_DSTS), dwc->gadget.state);
+
 	switch (event->type) {
 	case DWC3_DEVICE_EVENT_DISCONNECT:
 		dwc3_gadget_disconnect_interrupt(dwc);

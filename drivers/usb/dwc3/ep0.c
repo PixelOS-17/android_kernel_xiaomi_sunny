@@ -254,6 +254,8 @@ void dwc3_ep0_stall_and_restart(struct dwc3 *dwc)
 {
 	struct dwc3_ep		*dep;
 
+	dev_info(dwc->dev, "usbdbg: ep0 stall state %d\n", dwc->ep0state);
+
 	/* reinitialize physical ep1 */
 	dep = dwc->eps[1];
 	dep->flags = DWC3_EP_ENABLED;
@@ -943,6 +945,7 @@ static void dwc3_ep0_inspect_setup(struct dwc3 *dwc,
 	 * Restart USB gadget if such delayed SETUP packet is inspected.
 	 */
 	if (!dwc->connected) {
+		dev_info(dwc->dev, "usbdbg: setup while disconnected, restarting session\n");
 		dbg_event(0x0, "Setup_restart", 0);
 		dwc3_notify_event(dwc, DWC3_CONTROLLER_RESTART_USB_SESSION, 0);
 		return;
@@ -971,6 +974,11 @@ static void dwc3_ep0_inspect_setup(struct dwc3 *dwc,
 		dwc->delayed_status = true;
 
 out:
+	dev_info(dwc->dev, "usbdbg: setup %02x %02x %04x %04x %04x ret %d speed %d state %d\n",
+		 ctrl->bRequestType, ctrl->bRequest, le16_to_cpu(ctrl->wValue),
+		 le16_to_cpu(ctrl->wIndex), le16_to_cpu(ctrl->wLength), ret,
+		 dwc->gadget.speed, dwc->gadget.state);
+
 	/*
 	 * Don't try to halt ep0 if ret is -ESHUTDOWN.
 	 * ret as -ESHUTDOWN suggests that setup packet related response
@@ -1333,6 +1341,12 @@ void dwc3_ep0_interrupt(struct dwc3 *dwc,
 	u8 epnum = event->endpoint_number;
 
 	dep = dwc->eps[epnum];
+	if (event->endpoint_event == DWC3_DEPEVT_XFERCOMPLETE ||
+	    event->endpoint_event == DWC3_DEPEVT_XFERNOTREADY)
+		dev_info(dwc->dev, "usbdbg: ep0 ep%u %s status %u state %d\n", epnum,
+			 event->endpoint_event == DWC3_DEPEVT_XFERCOMPLETE ?
+			 "complete" : "notready", event->status, dwc->ep0state);
+
 	switch (event->endpoint_event) {
 	case DWC3_DEPEVT_XFERCOMPLETE:
 		dwc3_ep0_xfer_complete(dwc, event);
